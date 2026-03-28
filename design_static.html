@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设计 - Design Studio</title>
+    <!-- Version: 2026.03.28.002 - 与本地Flask风格一致 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #111;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* 导航栏 - 与本地一致 */
+        .navbar {
+            background: #000;
+            padding: 1.2rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar h1 {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        /* 页面标题 */
+        .page-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .page-header h2 {
+            font-weight: 300;
+            font-size: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border: 1px solid #111;
+            background: #111;
+            color: #fff;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #333;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #111;
+            background: #f5f5f5;
+        }
+        
+        /* 设计区域 */
+        .design-section {
+            background: #fafafa;
+            border: 1px solid #eee;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .design-section h3 {
+            font-weight: 400;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+        
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            color: #666;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            background: #fff;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #111;
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* 参考图片区域 */
+        .reference-section {
+            margin-bottom: 2rem;
+        }
+        
+        .reference-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .reference-item {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 0.5rem;
+            text-align: center;
+        }
+        
+        .reference-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        
+        .reference-item .remove-btn {
+            margin-top: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.7rem;
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+            font-size: 0.9rem;
+            background: #fff;
+            border: 1px dashed #ddd;
+        }
+        
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #111;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            font-size: 0.85rem;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            
+            .design-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <h1>Design Studio</h1>
+        <div class="nav-links">
+            <a href="library_static.html">图片库</a>
+            <a href="design_static.html" class="active">设计</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h2>AI 设计助手</h2>
+        </div>
+        
+        <!-- 设计需求输入 -->
+        <div class="design-section">
+            <h3>设计需求</h3>
+            <div class="form-group">
+                <label>描述您的设计需求</label>
+                <textarea id="designRequirement" placeholder="例如：设计一款适合秋冬季节的简约风格羽绒服，颜色以米色和深灰为主..."></textarea>
+            </div>
+            <button class="btn" onclick="generateDesign()">生成设计方案</button>
+        </div>
+        
+        <!-- 参考图片 -->
+        <div class="design-section reference-section">
+            <h3>参考图片</h3>
+            <div id="referenceContainer">
+                <div class="empty-state">
+                    暂无参考图片，请从图片库中选择
+                </div>
+            </div>
+        </div>
+        
+        <!-- 生成结果 -->
+        <div class="design-section" id="resultSection" style="display: none;">
+            <h3>设计方案</h3>
+            <div id="designResult"></div>
+        </div>
+    </div>
+    
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        let selectedReferences = [];
+        
+        // 显示提示
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+        
+        // 从URL参数获取参考图片
+        function loadReferencesFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const refId = params.get('ref');
+            if (refId) {
+                showToast('请在本地设计页面使用参考图片功能');
+            }
+        }
+        
+        // 生成设计
+        function generateDesign() {
+            const requirement = document.getElementById('designRequirement').value.trim();
+            if (!requirement) {
+                showToast('请输入设计需求');
+                return;
+            }
+            
+            showToast('请在本地使用此功能以获取AI设计方案');
+        }
+        
+        // 页面加载时执行
+        loadReferencesFromURL();
+    </script>
+</body>
+</html>

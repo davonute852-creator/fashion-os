@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片库 - Design Studio</title>
+    <!-- Version: 2026.03.28.002 - 与本地Flask风格一致 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #111;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* 导航栏 - 与本地一致 */
+        .navbar {
+            background: #000;
+            padding: 1.2rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar h1 {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        /* 页面标题区域 */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .page-header h2 {
+            font-weight: 300;
+            font-size: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+        
+        /* 按钮样式 - 与本地一致 */
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border: 1px solid #111;
+            background: #111;
+            color: #fff;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #333;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #111;
+            background: #f5f5f5;
+        }
+        
+        /* 筛选区域 */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #fafafa;
+            border: 1px solid #eee;
+        }
+        
+        .filters input, .filters select {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            background: #fff;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+        
+        .filters input:focus, .filters select:focus {
+            border-color: #111;
+        }
+        
+        .filters input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filters select {
+            min-width: 150px;
+        }
+        
+        /* 图片网格 - 与本地一致 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .image-card {
+            background: #fff;
+            border: 1px solid #eee;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .image-card:hover {
+            border-color: #111;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .image-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .image-card .info {
+            padding: 1rem;
+        }
+        
+        .image-card .title {
+            font-weight: 400;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .image-card .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tag {
+            background: #f5f5f5;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.7rem;
+            color: #666;
+            letter-spacing: 0.03em;
+        }
+        
+        .image-card .date {
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 0.75rem;
+        }
+        
+        .image-card .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .image-card .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            flex: 1;
+        }
+        
+        /* 统计信息 */
+        .stats {
+            display: flex;
+            gap: 3rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #fafafa;
+            border: 1px solid #eee;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 300;
+            color: #111;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+        
+        /* 空状态 */
+        .empty {
+            text-align: center;
+            padding: 4rem;
+            color: #999;
+            font-size: 0.9rem;
+            grid-column: 1 / -1;
+        }
+        
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: #999;
+            font-size: 0.9rem;
+            grid-column: 1 / -1;
+        }
+        
+        .spinner {
+            border: 2px solid #eee;
+            border-top: 2px solid #111;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #111;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            font-size: 0.85rem;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 - 与本地一致 -->
+    <nav class="navbar">
+        <h1>Design Studio</h1>
+        <div class="nav-links">
+            <a href="library_static.html" class="active">图片库</a>
+            <a href="design_static.html">设计</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h2>图片库</h2>
+            <button class="btn" onclick="showToast('请在本地使用飞书机器人 /采集 命令添加图片')">
+                + 添加图片
+            </button>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalImages">-</div>
+                <div class="stat-label">总图片数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalCategories">-</div>
+                <div class="stat-label">分类数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="lastUpdate">-</div>
+                <div class="stat-label">最后更新</div>
+            </div>
+        </div>
+        
+        <!-- 筛选 -->
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="搜索图片..." oninput="filterImages()">
+            <select id="categoryFilter" onchange="filterImages()">
+                <option value="">全部分类</option>
+                <option value="服装">服装</option>
+                <option value="配饰">配饰</option>
+                <option value="面料">面料</option>
+                <option value="款式">款式</option>
+                <option value="其他">其他</option>
+            </select>
+        </div>
+        
+        <!-- 图片网格 -->
+        <div id="imageGrid" class="grid">
+            <div class="loading">
+                <div class="spinner"></div>
+                正在加载图片...
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        let allImages = [];
+        
+        // 显示提示
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+        
+        // 加载图片数据
+        async function loadImages() {
+            try {
+                // 尝试多种路径（支持本地和GitHub Pages）
+                let response;
+                const paths = [
+                    'data/images.json',
+                    '../data/images.json',
+                    './data/images.json'
+                ];
+                
+                for (const path of paths) {
+                    try {
+                        response = await fetch(path);
+                        if (response.ok) break;
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                if (!response || !response.ok) {
+                    throw new Error('无法加载图片数据');
+                }
+                
+                allImages = await response.json();
+                
+                // 按时间倒序排列（最新的在前面）
+                allImages.sort((a, b) => {
+                    const dateA = new Date(a.uploaded_at || 0);
+                    const dateB = new Date(b.uploaded_at || 0);
+                    return dateB - dateA;
+                });
+                
+                updateStats();
+                renderImages(allImages);
+            } catch (error) {
+                console.error('Error loading images:', error);
+                document.getElementById('imageGrid').innerHTML = 
+                    '<div class="empty">暂无图片，请使用飞书机器人 /采集 命令添加图片</div>';
+            }
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalImages').textContent = allImages.length;
+            
+            const categories = new Set(allImages.map(img => img.category).filter(Boolean));
+            document.getElementById('totalCategories').textContent = categories.size;
+            
+            if (allImages.length > 0) {
+                const lastDate = new Date(allImages[0].uploaded_at);
+                document.getElementById('lastUpdate').textContent = 
+                    lastDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            } else {
+                document.getElementById('lastUpdate').textContent = '-';
+            }
+        }
+        
+        // 渲染图片
+        function renderImages(images) {
+            const grid = document.getElementById('imageGrid');
+            
+            if (images.length === 0) {
+                grid.innerHTML = '<div class="empty">没有找到匹配的图片</div>';
+                return;
+            }
+            
+            grid.innerHTML = images.map(image => {
+                const imgSrc = image.filename ? `uploads/${image.filename}` : (image.path || image.url || '');
+                const tags = image.tags || [];
+                const date = image.uploaded_at 
+                    ? new Date(image.uploaded_at).toLocaleDateString('zh-CN')
+                    : '-';
+                
+                return `
+                <div class="image-card">
+                    <img src="${imgSrc}" 
+                         alt="${image.title || image.original_name || '图片'}" 
+                         loading="lazy"
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%23f5f5f5%22 width=%22100%25%22 height=%22100%25%22/><text fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 font-size=%2212%22>图片加载失败</text></svg>'">
+                    <div class="info">
+                        <div class="title">${image.title || image.original_name || '未命名图片'}</div>
+                        <div class="tags">
+                            ${image.category ? `<span class="tag">${image.category}</span>` : ''}
+                            ${tags.slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                        <div class="date">${date}</div>
+                        <div class="actions">
+                            <button class="btn btn-secondary btn-small" onclick="viewImage('${imgSrc}')">查看</button>
+                            <button class="btn btn-secondary btn-small" onclick="selectForDesign('${image.id}')">选择</button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+        
+        // 过滤图片
+        function filterImages() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const category = document.getElementById('categoryFilter').value;
+            
+            const filtered = allImages.filter(image => {
+                const matchesSearch = !searchTerm || 
+                    (image.title && image.title.toLowerCase().includes(searchTerm)) ||
+                    (image.original_name && image.original_name.toLowerCase().includes(searchTerm)) ||
+                    (image.tags && image.tags.some(tag => tag.toLowerCase().includes(searchTerm))) ||
+                    (image.category && image.category.toLowerCase().includes(searchTerm));
+                
+                const matchesCategory = !category || image.category === category;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderImages(filtered);
+        }
+        
+        // 查看大图
+        function viewImage(src) {
+            window.open(src, '_blank');
+        }
+        
+        // 选择用于设计
+        function selectForDesign(imageId) {
+            showToast('请在本地设计页面使用此功能');
+        }
+        
+        // 页面加载时执行
+        loadImages();
+    </script>
+</body>
+</html>

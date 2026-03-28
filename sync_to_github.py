@@ -31,18 +31,25 @@ def sync_to_github():
     
     print(f"发现更改:\n{stdout}")
     
-    # 2. 复制静态文件到docs目录（用于GitHub Pages）
+    # 2. 复制静态文件到根目录（GitHub Pages主入口）
+    print("\n📋 更新根目录静态文件...")
+    run_command("cp static/library_static.html index.html", cwd=web_dir)
+    run_command("cp static/design_static.html .", cwd=web_dir)
+    run_command("cp data/images.json data/", cwd=web_dir)
+    run_command("cp -r static/uploads/* uploads/ 2>/dev/null || true", cwd=web_dir)
+    
+    # 3. 同时更新docs目录
     print("\n📋 更新docs目录...")
     run_command("cp static/library_static.html docs/index.html", cwd=web_dir)
     run_command("cp static/design_static.html docs/", cwd=web_dir)
     run_command("cp data/images.json docs/data/", cwd=web_dir)
     run_command("cp -r static/uploads/* docs/uploads/ 2>/dev/null || true", cwd=web_dir)
     
-    # 3. 添加所有更改
+    # 4. 添加所有更改
     print("\n📤 添加文件到git...")
-    run_command("git add docs/ data/ static/uploads/", cwd=web_dir)
+    run_command("git add index.html design_static.html data/ uploads/ docs/ static/uploads/", cwd=web_dir)
     
-    # 4. 提交更改
+    # 5. 提交更改
     print("\n💾 提交更改...")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     commit_msg = f"自动同步图片库 - {timestamp}\n\n- 更新图片数据\n- 同步新采集的图片到GitHub Pages"
@@ -54,7 +61,7 @@ def sync_to_github():
     
     print(f"✅ 提交成功: {stdout}")
     
-    # 5. 推送到GitHub
+    # 6. 推送到GitHub
     print("\n🚀 推送到GitHub...")
     success, stdout, stderr = run_command("git push origin main", cwd=web_dir)
     if not success:

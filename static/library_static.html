@@ -229,10 +229,18 @@
         // 加载图片数据
         async function loadImages() {
             try {
-                // 从 images.json 加载数据
-                const response = await fetch('../data/images.json');
+                // 从 images.json 加载数据（支持本地和GitHub Pages两种路径）
+                let response;
+                try {
+                    // 先尝试相对路径（本地开发）
+                    response = await fetch('../data/images.json');
+                } catch (e) {
+                    // 失败则尝试根路径（GitHub Pages）
+                    response = await fetch('data/images.json');
+                }
+                
                 if (!response.ok) {
-                    throw new Error('Failed to load images');
+                    throw new Error('Failed to load images: ' + response.status);
                 }
                 allImages = await response.json();
                 
@@ -271,22 +279,25 @@
                 return;
             }
             
-            gallery.innerHTML = images.map(image => `
-                <div class="image-card" onclick="viewImage('${image.filename}')">
-                    <img src="uploads/${image.filename}" 
-                         alt="${image.title || image.original_name}" 
+            gallery.innerHTML = images.map(image => {
+                // 尝试多种图片路径
+                const imgSrc = image.filename ? `uploads/${image.filename}` : (image.path || image.url || '');
+                return `
+                <div class="image-card" onclick="viewImage('${image.filename || ''}')">
+                    <img src="${imgSrc}" 
+                         alt="${image.title || image.original_name || '图片'}" 
                          loading="lazy"
-                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect fill=%22%23f0f0f0%22 width=%22100%25%22 height=%22100%25%22/><text fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22>图片加载失败</text></svg>'">
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect fill=%22%23f0f0f0%22 width=%22100%25%22 height=%22100%25%22/><text fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22>图片加载失败</text></svg>'">
                     <div class="image-info">
-                        <h3>${image.title || image.original_name}</h3>
+                        <h3>${image.title || image.original_name || '未命名图片'}</h3>
                         <div class="tags">
                             ${(image.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
                             ${image.category ? `<span class="tag">${image.category}</span>` : ''}
                         </div>
-                        <div class="date">${new Date(image.uploaded_at).toLocaleDateString('zh-CN')}</div>
+                        <div class="date">${image.uploaded_at ? new Date(image.uploaded_at).toLocaleDateString('zh-CN') : '-'}</div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         // 过滤图片

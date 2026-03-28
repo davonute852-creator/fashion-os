@@ -538,8 +538,47 @@
             showToast('请在本地设计页面使用此功能');
         }
         
+        // 自动刷新 - 每30秒检查新图片
+        let lastImageCount = 0;
+        
+        async function checkForNewImages() {
+            try {
+                const response = await fetch('data/images.json?t=' + Date.now());
+                if (!response.ok) return;
+                
+                const newImages = await response.json();
+                
+                // 如果有新图片
+                if (newImages.length > lastImageCount) {
+                    const newCount = newImages.length - lastImageCount;
+                    showToast(`🎉 发现 ${newCount} 张新图片！正在更新...`, 3000);
+                    
+                    // 更新数据
+                    allImages = newImages;
+                    allImages.sort((a, b) => {
+                        const dateA = new Date(a.uploaded_at || 0);
+                        const dateB = new Date(b.uploaded_at || 0);
+                        return dateB - dateA;
+                    });
+                    
+                    // 更新显示
+                    updateStats();
+                    renderImages(allImages);
+                    
+                    lastImageCount = newImages.length;
+                }
+            } catch (e) {
+                console.log('检查新图片失败:', e);
+            }
+        }
+        
         // 页面加载时执行
-        loadImages();
+        loadImages().then(() => {
+            lastImageCount = allImages.length;
+            // 启动自动刷新
+            setInterval(checkForNewImages, 30000); // 每30秒检查一次
+            console.log('✅ 自动刷新已启动 (每30秒)');
+        });
     </script>
 </body>
 </html>

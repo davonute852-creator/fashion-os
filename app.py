@@ -36,18 +36,24 @@ def save_metadata(data):
 @app.route('/')
 def index():
     images = load_metadata()
+    # 按上传时间倒序排列，最新的图片在最前面
+    images.sort(key=lambda x: x.get('uploaded_at', ''), reverse=True)
     lang = request.args.get('lang', 'en')
     return render_template('index.html', images=images, lang=lang)
 
 @app.route('/library')
 def library():
     images = load_metadata()
+    # 按上传时间倒序排列，最新的图片在最前面
+    images.sort(key=lambda x: x.get('uploaded_at', ''), reverse=True)
     lang = request.args.get('lang', 'en')
     return render_template('library.html', images=images, lang=lang)
 
 @app.route('/design')
 def design():
     images = load_metadata()
+    # 按上传时间倒序排列，最新的图片在最前面
+    images.sort(key=lambda x: x.get('uploaded_at', ''), reverse=True)
     lang = request.args.get('lang', 'en')
     return render_template('design.html', images=images, lang=lang)
 

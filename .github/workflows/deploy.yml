@@ -2,12 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -24,15 +23,157 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+      
       - name: Setup Pages
-        uses: actions/configure-pages@v5
-
+        uses: actions/configure-pages@v4
+      
+      - name: Build static site
+        run: |
+          # Create a static version of the site
+          mkdir -p _site
+          cp -r static _site/
+          cp -r templates _site/
+          
+          # Create a simple index.html that redirects to the library
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta http-equiv="refresh" content="0; url=library.html">
+              <title>Fashion Image Library</title>
+          </head>
+          <body>
+              <p>Redirecting to <a href="library.html">Image Library</a>...</p>
+          </body>
+          </html>
+          EOF
+          
+          # Create library.html as a static page
+          cat > _site/library.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Fashion Image Library</title>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      min-height: 100vh;
+                      padding: 20px;
+                  }
+                  .container {
+                      max-width: 1400px;
+                      margin: 0 auto;
+                  }
+                  header {
+                      text-align: center;
+                      padding: 40px 20px;
+                      color: white;
+                  }
+                  header h1 {
+                      font-size: 3em;
+                      margin-bottom: 10px;
+                      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                  }
+                  header p {
+                      font-size: 1.2em;
+                      opacity: 0.9;
+                  }
+                  .gallery {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                      gap: 20px;
+                      padding: 20px;
+                  }
+                  .image-card {
+                      background: white;
+                      border-radius: 16px;
+                      overflow: hidden;
+                      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                      transition: transform 0.3s ease, box-shadow 0.3s ease;
+                  }
+                  .image-card:hover {
+                      transform: translateY(-5px);
+                      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                  }
+                  .image-card img {
+                      width: 100%;
+                      height: 300px;
+                      object-fit: cover;
+                  }
+                  .image-info {
+                      padding: 15px;
+                  }
+                  .image-info h3 {
+                      color: #333;
+                      margin-bottom: 5px;
+                  }
+                  .image-info p {
+                      color: #666;
+                      font-size: 0.9em;
+                  }
+                  .loading {
+                      text-align: center;
+                      color: white;
+                      padding: 40px;
+                      font-size: 1.2em;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <header>
+                      <h1>🎨 Fashion Image Library</h1>
+                      <p>Global fashion image collection & design inspiration</p>
+                  </header>
+                  <div id="gallery" class="gallery">
+                      <div class="loading">Loading images...</div>
+                  </div>
+              </div>
+              
+              <script>
+                  // Load images from the uploads directory
+                  async function loadImages() {
+                      const gallery = document.getElementById('gallery');
+                      
+                      // List of image files (this would normally come from an API)
+                      const imageFiles = [
+                          '0016775b1d3f48ea9d1e0b3f2061f35c.jpeg',
+                          '003bf6c92bff477882c35d87fbaae0c3.jpg',
+                          '004c29935d65497688bf6fd7a1bcadc8.jpg',
+                          // Add more images here
+                      ];
+                      
+                      gallery.innerHTML = '';
+                      
+                      imageFiles.forEach((filename, index) => {
+                          const card = document.createElement('div');
+                          card.className = 'image-card';
+                          card.innerHTML = `
+                              <img src="static/uploads/${filename}" alt="Fashion Image ${index + 1}" loading="lazy">
+                              <div class="image-info">
+                                  <h3>Image ${index + 1}</h3>
+                                  <p>Fashion Collection 2026</p>
+                              </div>
+                          `;
+                          gallery.appendChild(card);
+                      });
+                  }
+                  
+                  loadImages();
+              </script>
+          </body>
+          </html>
+          EOF
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
-
+          path: '_site'
+      
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

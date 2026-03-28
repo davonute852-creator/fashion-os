@@ -32,9 +32,16 @@ jobs:
           # 创建输出目录
           mkdir -p _site
           
-          # 复制静态资源
+          # 复制静态资源（保持目录结构）
           cp -r static/* _site/ 2>/dev/null || true
-          cp -r data _site/ 2>/dev/null || true
+          
+          # 复制数据文件
+          mkdir -p _site/data
+          cp data/images.json _site/data/ 2>/dev/null || true
+          
+          # 复制上传的图片
+          mkdir -p _site/uploads
+          cp -r static/uploads/* _site/uploads/ 2>/dev/null || true
           
           # 创建 index.html（重定向到图片库）
           cat > _site/index.html << 'EOF'
@@ -42,7 +49,7 @@ jobs:
           <html>
           <head>
               <meta http-equiv="refresh" content="0; url=library_static.html">
-              <title>Fashion Image Library</title>
+              <title>Design Studio - Fashion Image Library</title>
           </head>
           <body>
               <p>Redirecting to <a href="library_static.html">Image Library</a>...</p>
@@ -50,11 +57,14 @@ jobs:
           </html>
           EOF
           
-          # 确保 uploads 目录存在
-          mkdir -p _site/uploads
-          
           echo "Build complete. Files in _site:"
           ls -la _site/
+          echo "---"
+          echo "Data files:"
+          ls -la _site/data/ 2>/dev/null || echo "No data files"
+          echo "---"
+          echo "Upload files count:"
+          ls -1 _site/uploads/ 2>/dev/null | wc -l
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

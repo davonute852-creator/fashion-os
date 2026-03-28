@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'zh' %}图片库{% else %}Image Library{% endif %} - Design Studio{% endblock %}
+
+{% block content %}
+<div class="card" style="border: none; padding: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 style="font-weight: 300; font-size: 1.5rem; letter-spacing: 0.05em;">
+            {% if lang == 'zh' %}图片库{% else %}Image Library{% endif %}
+        </h2>
+        <button class="btn btn-primary" onclick="showUploadModal()">
+            {% if lang == 'zh' %}+ 添加图片{% else %}+ Add Image{% endif %}
+        </button>
+    </div>
+    
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+        <input type="text" id="searchInput" placeholder="{% if lang == 'zh' %}搜索图片...{% else %}Search images...{% endif %}" 
+               style="flex: 1; padding: 0.8rem; border: 1px solid #ddd; font-size: 0.9rem;"
+               oninput="searchImages()">
+        <select id="categoryFilter" style="padding: 0.8rem; border: 1px solid #ddd; font-size: 0.9rem; min-width: 150px;"
+                onchange="filterByCategory()">
+            <option value="">{% if lang == 'zh' %}全部分类{% else %}All Categories{% endif %}</option>
+            <option value="服装">{% if lang == 'zh' %}服装{% else %}Clothing{% endif %}</option>
+            <option value="配饰">{% if lang == 'zh' %}配饰{% else %}Accessories{% endif %}</option>
+            <option value="面料">{% if lang == 'zh' %}面料{% else %}Fabric{% endif %}</option>
+            <option value="款式">{% if lang == 'zh' %}款式{% else %}Style{% endif %}</option>
+            <option value="其他">{% if lang == 'zh' %}其他{% else %}Other{% endif %}</option>
+        </select>
+    </div>
+    
+    <div class="grid" id="imageGrid">
+        {% for image in images %}
+        <div class="image-card" data-id="{{ image.id }}">
+            <img src="/static/uploads/{{ image.filename }}" alt="{{ image.original_name }}">
+            <div class="info">
+                <div style="font-weight: 400; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ image.original_name }}
+                </div>
+                <div class="tags">
+                    {% for tag in image.tags %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;" 
+                            onclick="selectForDesign('{{ image.id }}')">
+                        {% if lang == 'zh' %}选择{% else %}Select{% endif %}
+                    </button>
+                    <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;"
+                            onclick="deleteImage('{{ image.id }}')">
+                        {% if lang == 'zh' %}删除{% else %}Delete{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p style="grid-column: 1 / -1; text-align: center; color: #999; padding: 3rem; font-size: 0.9rem;">
+            {% if lang == 'zh' %}暂无图片，请上传{% else %}No images. Please upload.{% endif %}
+        </p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal" id="uploadModal">
+    <div class="modal-content">
+        <h2 style="font-weight: 300; font-size: 1.3rem; margin-bottom: 1.5rem;">
+            {% if lang == 'zh' %}添加图片{% else %}Add Image{% endif %}
+        </h2>
+        <form id="uploadForm" onsubmit="uploadImage(event)">
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}选择图片{% else %}Select Image{% endif %}</label>
+                <input type="file" name="image" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}分类{% else %}Category{% endif %}</label>
+                <select name="category">
+                    <option value="服装">{% if lang == 'zh' %}服装{% else %}Clothing{% endif %}</option>
+                    <option value="配饰">{% if lang == 'zh' %}配饰{% else %}Accessories{% endif %}</option>
+                    <option value="面料">{% if lang == 'zh' %}面料{% else %}Fabric{% endif %}</option>
+                    <option value="款式">{% if lang == 'zh' %}款式{% else %}Style{% endif %}</option>
+                    <option value="其他">{% if lang == 'zh' %}其他{% else %}Other{% endif %}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}标签（用逗号分隔）{% else %}Tags (comma separated){% endif %}</label>
+                <input type="text" name="tags" placeholder="{% if lang == 'zh' %}例如：秋冬, 羽绒服, 简约{% else %}e.g., winter, coat, minimalist{% endif %}">
+            </div>
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}描述{% else %}Description{% endif %}</label>
+                <textarea name="description" placeholder="{% if lang == 'zh' %}图片描述...{% else %}Image description...{% endif %}"></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">
+                    {% if lang == 'zh' %}取消{% else %}Cancel{% endif %}
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    {% if lang == 'zh' %}上传{% else %}Upload{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showUploadModal() {
+    document.getElementById('uploadModal').classList.add('active');
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.remove('active');
+}
+
+async function uploadImage(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('{% if lang == "zh" %}上传成功{% else %}Upload successful{% endif %}');
+            closeUploadModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('{% if lang == "zh" %}上传失败{% else %}Upload failed{% endif %}: ' + result.error);
+        }
+    } catch (error) {
+        showToast('{% if lang == "zh" %}上传失败{% else %}Upload failed{% endif %}: ' + error.message);
+    }
+}
+
+async function searchImages() {
+    const query = document.getElementById('searchInput').value;
+    const category = document.getElementById('categoryFilter').value;
+    
+    try {
+        const url = `/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`;
+        const images = await apiCall(url);
+        renderImages(images);
+    } catch (error) {
+        console.error('Search error:', error);
+    }
+}
+
+function filterByCategory() {
+    searchImages();
+}
+
+function renderImages(images) {
+    const grid = document.getElementById('imageGrid');
+    if (images.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #999; padding: 3rem;">{% if lang == "zh" %}没有找到图片{% else %}No images found{% endif %}</p>';
+        return;
+    }
+    
+    grid.innerHTML = images.map(img => `
+        <div class="image-card" data-id="${img.id}">
+            <img src="/static/uploads/${img.filename}" alt="${img.original_name}">
+            <div class="info">
+                <div style="font-weight: 400; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${img.original_name}
+                </div>
+                <div class="tags">
+                    ${(img.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;" 
+                            onclick="selectForDesign('${img.id}')">{% if lang == 'zh' %}选择{% else %}Select{% endif %}</button>
+                    <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;"
+                            onclick="deleteImage('${img.id}')">{% if lang == 'zh' %}删除{% else %}Delete{% endif %}</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function deleteImage(imageId) {
+    const confirmMsg = '{% if lang == "zh" %}确定要删除这张图片吗？{% else %}Delete this image?{% endif %}';
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+        const result = await apiCall(`/api/images/${imageId}`, { method: 'DELETE' });
+        if (result.success) {
+            showToast('{% if lang == "zh" %}删除成功{% else %}Deleted{% endif %}');
+            document.querySelector(`[data-id="${imageId}"]`)?.remove();
+        }
+    } catch (error) {
+        showToast('{% if lang == "zh" %}删除失败{% else %}Delete failed{% endif %}: ' + error.message);
+    }
+}
+
+function selectForDesign(imageId) {
+    const lang = new URLSearchParams(window.location.search).get('lang') || 'en';
+    window.location.href = `/design?ref=${imageId}&lang=${lang}`;
+}
+</script>
+{% endblock %}

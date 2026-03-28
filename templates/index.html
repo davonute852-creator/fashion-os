@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'zh' %}设计工作室{% else %}Design Studio{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card" style="border: none; padding: 3rem 2rem;">
+    <h2 style="font-weight: 300; font-size: 1.8rem; margin-bottom: 1rem; letter-spacing: 0.05em;">
+        {% if lang == 'zh' %}设计工作室{% else %}Design Studio{% endif %}
+    </h2>
+    <p style="color: #666; margin-bottom: 2rem; font-size: 0.9rem; line-height: 1.8;">
+        {% if lang == 'zh' %}
+        AI 驱动的服装设计助手<br>
+        搜索全球时尚图片，生成设计，发送到 Style 3D
+        {% else %}
+        AI-powered fashion design assistant.<br>
+        Search global fashion images, generate designs, send to Style 3D.
+        {% endif %}
+    </p>
+    
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <a href="/library?lang={{lang}}" style="text-decoration: none;">
+            <div class="card" style="padding: 2rem; border: 1px solid #eee; transition: all 0.3s; cursor: pointer;">
+                <div style="font-size: 0.7rem; color: #999; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem;">01</div>
+                <h3 style="font-weight: 400; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                    {% if lang == 'zh' %}图片库{% else %}Image Library{% endif %}
+                </h3>
+                <p style="color: #999; font-size: 0.8rem;">
+                    {% if lang == 'zh' %}全球时尚图片集合{% else %}Global fashion image collection{% endif %}
+                </p>
+            </div>
+        </a>
+        
+        <a href="/design?lang={{lang}}" style="text-decoration: none;">
+            <div class="card" style="padding: 2rem; border: 1px solid #eee; transition: all 0.3s; cursor: pointer;">
+                <div style="font-size: 0.7rem; color: #999; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem;">02</div>
+                <h3 style="font-weight: 400; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                    {% if lang == 'zh' %}AI 设计{% else %}Design AI{% endif %}
+                </h3>
+                <p style="color: #999; font-size: 0.8rem;">
+                    {% if lang == 'zh' %}生成服装设计方案{% else %}Generate fashion designs{% endif %}
+                </p>
+            </div>
+        </a>
+        
+        <div class="card" style="padding: 2rem; border: 1px solid #eee;">
+            <div style="font-size: 0.7rem; color: #999; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem;">03</div>
+            <h3 style="font-weight: 400; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                {% if lang == 'zh' %}统计{% else %}Statistics{% endif %}
+            </h3>
+            <p style="color: #999; font-size: 0.8rem;">
+                {% if lang == 'zh' %}{{ images|length }} 张图片{% else %}{{ images|length }} images in library{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="border: none; padding: 2rem;">
+    <h3 style="font-weight: 400; font-size: 1rem; margin-bottom: 1.5rem; letter-spacing: 0.05em; text-transform: uppercase;">
+        {% if lang == 'zh' %}快速开始{% else %}Quick Start{% endif %}
+    </h3>
+    
+    <div class="form-group">
+        <label>{% if lang == 'zh' %}输入设计要求{% else %}Design Requirement{% endif %}</label>
+        <textarea id="quickRequirement" placeholder="{% if lang == 'zh' %}例如：设计一件简约风格的白色连衣裙，参考复古元素...{% else %}e.g., Design a minimalist white dress with vintage elements...{% endif %}"></textarea>
+    </div>
+    
+    <button class="btn btn-primary" onclick="startQuickDesign()">
+        {% if lang == 'zh' %}生成设计{% else %}Generate Design{% endif %}
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function startQuickDesign() {
+    const requirement = document.getElementById('quickRequirement').value;
+    if (!requirement) {
+        showToast('{% if lang == "zh" %}请输入设计要求{% else %}Please enter a design requirement{% endif %}');
+        return;
+    }
+    
+    const lang = new URLSearchParams(window.location.search).get('lang') || 'en';
+    window.location.href = '/design?requirement=' + encodeURIComponent(requirement) + '&lang=' + lang;
+}
+</script>
+{% endblock %}

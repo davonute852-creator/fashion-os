@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'zh' %}AI 设计{% else %}Design AI{% endif %} - Design Studio{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div>
+        <div class="card" style="border: none; padding: 2rem;">
+            <h2 style="font-weight: 300; font-size: 1.3rem; margin-bottom: 1.5rem; letter-spacing: 0.05em;">
+                {% if lang == 'zh' %}设计要求{% else %}Design Requirement{% endif %}
+            </h2>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}输入你的设计要求{% else %}Enter your design requirement{% endif %}</label>
+                <textarea id="requirement" rows="6" placeholder="{% if lang == 'zh' %}例如：设计一件适合上班族的简约白色连衣裙，融入现代元素...{% else %}e.g., Design a minimalist white dress for office workers, incorporating modern elements...{% endif %}"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}选择参考图片{% else %}Select Reference Images{% endif %}</label>
+                <div class="grid" id="referenceSelector" style="max-height: 280px; overflow-y: auto;">
+                    {% for image in images[:12] %}
+                    <div class="image-card" style="cursor: pointer;" onclick="toggleReference('{{ image.id }}', '{{ image.filename }}')" 
+                         data-ref-id="{{ image.id }}">
+                        <img src="/static/uploads/{{ image.filename }}" alt="{{ image.original_name }}">
+                        <div class="info" style="padding: 0.5rem;">
+                            <div style="font-size: 0.75rem;">{{ image.original_name[:20] }}...</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p style="grid-column: 1 / -1; color: #999; font-size: 0.85rem;">
+                        {% if lang == 'zh' %}暂无图片{% else %}No images in library{% endif %}
+                    </p>
+                    {% endfor %}
+                </div>
+                <div style="margin-top: 0.75rem; font-size: 0.8rem; color: #999;">
+                    <span id="selectedCount">{% if lang == 'zh' %}已选择 0 张{% else %}Selected: 0{% endif %}</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}AI 模型{% else %}AI Model{% endif %}</label>
+                <select id="modelSelect">
+                    <option value="gpt-image-1">GPT Image 1</option>
+                    <option value="dall-e-3">DALL-E 3</option>
+                    <option value="nvidia">NVIDIA (Devstral)</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" onclick="generateDesign()">
+                {% if lang == 'zh' %}生成设计{% else %}Generate Design{% endif %}
+            </button>
+        </div>
+    </div>
+    
+    <div>
+        <div class="card" style="border: none; padding: 2rem;">
+            <h2 style="font-weight: 300; font-size: 1.3rem; margin-bottom: 1.5rem; letter-spacing: 0.05em;">
+                {% if lang == 'zh' %}生成结果{% else %}Generated Result{% endif %}
+            </h2>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p style="margin-top: 1rem; font-size: 0.9rem;">
+                    {% if lang == 'zh' %}AI 正在生成设计中...{% else %}AI is generating your design...{% endif %}
+                </p>
+            </div>
+            
+            <div id="result">
+                <p style="color: #999; text-align: center; padding: 2rem; font-size: 0.9rem;">
+                    {% if lang == 'zh' %}生成的设计将显示在这里{% else %}Generated designs will appear here{% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="card" id="style3dCard" style="border: none; padding: 1.5rem; display: none;">
+            <h3 style="font-weight: 400; font-size: 1rem; margin-bottom: 1rem; letter-spacing: 0.05em; text-transform: uppercase;">
+                {% if lang == 'zh' %}发送到 Style 3D{% else %}Send to Style 3D{% endif %}
+            </h3>
+            <p style="color: #999; margin-bottom: 1rem; font-size: 0.85rem;">
+                {% if lang == 'zh' %}将设计发送到 Style 3D 生成实物效果{% else %}Send design to Style 3D for rendering{% endif %}
+            </p>
+            <button class="btn btn-primary" onclick="sendToStyle3D()">
+                {% if lang == 'zh' %}发送到 Style 3D{% else %}Send to Style 3D{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selectedReferences = [];
+let generatedDesign = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const requirement = urlParams.get('requirement');
+    if (requirement) {
+        document.getElementById('requirement').value = decodeURIComponent(requirement);
+    }
+    
+    const refId = urlParams.get('ref');
+    if (refId) {
+        const card = document.querySelector(`[data-ref-id="${refId}"]`);
+        if (card) {
+            card.style.border = '2px solid #111';
+            selectedReferences.push(refId);
+            updateSelectedCount();
+        }
+    }
+});
+
+function toggleReference(id, filename) {
+    const card = document.querySelector(`[data-ref-id="${id}"]`);
+    const index = selectedReferences.indexOf(id);
+    
+    if (index > -1) {
+        selectedReferences.splice(index, 1);
+        card.style.border = '1px solid #eee';
+    } else {
+        selectedReferences.push(id);
+        card.style.border = '2px solid #111';
+    }
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const lang = new URLSearchParams(window.location.search).get('lang') || 'en';
+    const text = lang === 'zh' ? `已选择 ${selectedReferences.length} 张` : `Selected: ${selectedReferences.length}`;
+    document.getElementById('selectedCount').textContent = text;
+}
+
+async function generateDesign() {
+    const requirement = document.getElementById('requirement').value;
+    if (!requirement) {
+        showToast('{% if lang == "zh" %}请输入设计要求{% else %}Please enter a design requirement{% endif %}');
+        return;
+    }
+    
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('style3dCard').style.display = 'none';
+    
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                requirement,
+                reference_images: selectedReferences,
+                model: document.getElementById('modelSelect').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            generatedDesign = result.design;
+            renderDesignResult(result.design);
+            document.getElementById('style3dCard').style.display = 'block';
+        } else {
+            showToast('{% if lang == "zh" %}生成失败{% else %}Generation failed{% endif %}: ' + result.error);
+        }
+    } catch (error) {
+        showToast('{% if lang == "zh" %}生成失败{% else %}Generation failed{% endif %}: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function renderDesignResult(design) {
+    const resultDiv = document.getElementById('result');
+    const lang = new URLSearchParams(window.location.search).get('lang') || 'en';
+    
+    let refsHtml = '';
+    if (selectedReferences.length > 0) {
+        refsHtml = `
+            <div style="margin-bottom: 1rem;">
+                <strong style="font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">
+                    ${lang === 'zh' ? '参考图片：' : 'Reference Images:'}
+                </strong>
+                <div class="grid" style="margin-top: 0.5rem;">
+                    ${selectedReferences.map(id => {
+                        const card = document.querySelector(`[data-ref-id="${id}"]`);
+                        const img = card ? card.querySelector('img').src : '';
+                        return `<img src="${img}" style="width: 70px; height: 70px; object-fit: cover;">`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    resultDiv.innerHTML = `
+        <div style="background: #fafafa; padding: 1.5rem; border: 1px solid #eee;">
+            <h3 style="font-weight: 400; font-size: 1rem; margin-bottom: 1rem;">
+                ${lang === 'zh' ? '设计要求' : 'Design Requirement'}
+            </h3>
+            <p style="color: #333; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.7;">${design.requirement}</p>
+            ${refsHtml}
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                <p style="color: #999; font-size: 0.75rem;">
+                    ${lang === 'zh' ? '生成时间：' : 'Generated:'} ${new Date(design.generated_at).toLocaleString()}
+                </p>
+                <p style="color: #999; font-size: 0.75rem;">
+                    ${lang === 'zh' ? '状态：' : 'Status:'} <span style="color: #666;">${design.status}</span>
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+async function sendToStyle3D() {
+    if (!generatedDesign) {
+        showToast('{% if lang == "zh" %}请先生成设计{% else %}Please generate a design first{% endif %}');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/style3d/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ design_id: generatedDesign.id })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('{% if lang == "zh" %}已发送到 Style 3D{% else %}Sent to Style 3D{% endif %}');
+        } else {
+            showToast('{% if lang == "zh" %}发送失败{% else %}Send failed{% endif %}: ' + result.error);
+        }
+    } catch (error) {
+        showToast('{% if lang == "zh" %}发送失败{% else %}Send failed{% endif %}: ' + error.message);
+    }
+}
+</script>
+{% endblock %}
